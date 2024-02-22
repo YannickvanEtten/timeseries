@@ -89,10 +89,6 @@ def simulation(df,sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta
     alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(y_plus,a_hat,v_hat,F_hat,K_hat,P_hat)
     #epsilon_plus_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D =  kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F_hat,v_hat,K_hat,r_hat,N_hat)
     
-    a_hat,v_hat,F_hat,K_hat,P_hat  = kalman_filter(y_plus,sigma_sq_eta,sigma_sq_eps)
-    alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(y_plus,a_hat,v_hat,F_hat,K_hat,P_hat)
-    #epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D =  kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F,v,K,r,N)
-
     u_hat = (F_hat)**(-1) * v_hat - K_hat*r_hat
     epsilon_hat_plus = sigma_sq_eps*u_hat
     
@@ -118,8 +114,8 @@ def simulation2(df,sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,et
     alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(y_plus,a_hat,v_hat,F_hat,K_hat,P_hat)
     #epsilon_plus_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D =  kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F_hat,v_hat,K_hat,r_hat,N_hat)
     
-    a_hat,v_hat,F_hat,K_hat,P_hat  = kalman_filter(df,sigma_sq_eta,sigma_sq_eps)
-    alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(df,a_hat,v_hat,F_hat,K_hat,P_hat)
+    #a_hat,v_hat,F_hat,K_hat,P_hat  = kalman_filter(df,sigma_sq_eta,sigma_sq_eps)
+    #alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(df,a_hat,v_hat,F_hat,K_hat,P_hat)
     #epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D =  kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F,v,K,r,N)
 
     u_hat = (F_hat)**(-1) * v_hat - K_hat*r_hat
@@ -277,8 +273,10 @@ def main():
     sigma_sq_eta = 1469.1
     sigma_sq_eps = 15099
     
-    epsilon_plus = sigma_sq_eps**(0.5) * np.random.normal(0, 1, number_obs)
-    eta_plus = sigma_sq_eta**(0.5) * np.random.normal(0, 1, number_obs)
+    #epsilon_plus = sigma_sq_eps**(0.5) * np.random.normal(0, 1, number_obs)
+    #eta_plus = sigma_sq_eta**(0.5) * np.random.normal(0, 1, number_obs)
+    epsilon_plus =   np.random.normal(0, sigma_sq_eps, number_obs)
+    eta_plus = np.random.normal(0, sigma_sq_eta, number_obs)
     
     break_begin1 = df_nile.loc[df_nile['Year']==1891].index[0]
     break_end1 = df_nile.loc[df_nile['Year']==1911].index[0]
@@ -298,7 +296,7 @@ def main():
     #plots.plot_kalman_obs_dist(df_nile,epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta)
     
     #figure 4
-    alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde = simulation(df_nile,sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta_plus)
+    alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde = simulation(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta_plus)
     plots.plot_simulation(df_nile,alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
     alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde = simulation2(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta_plus)
     plots.plot_simulation(df_nile,alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
