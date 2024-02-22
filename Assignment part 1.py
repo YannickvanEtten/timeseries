@@ -11,7 +11,7 @@ from scipy.optimize import minimize
 import scipy.stats as sp
 import plots
 
-np.random.seed(23) #23
+np.random.seed(200) #23
 #####################################
 #Figure 2.1
 def kalman_filter(df,sigma_sq_eta,sigma_sq_eps):
@@ -89,35 +89,6 @@ def simulation(df,sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta
     alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(y_plus,a_hat,v_hat,F_hat,K_hat,P_hat)
     #epsilon_plus_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D =  kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F_hat,v_hat,K_hat,r_hat,N_hat)
     
-    u_hat = (F_hat)**(-1) * v_hat - K_hat*r_hat
-    epsilon_hat_plus = sigma_sq_eps*u_hat
-    
-    epsilon_tilde = epsilon_plus - epsilon_hat_plus + epsilon_hat
-    
-    alpha_tilde = df - epsilon_tilde
-    eta_tilde = [alpha_tilde[i+1] - alpha_tilde[i] for i in range(len(alpha_tilde)-1)]
-    return(alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
-
-def simulation2(df,sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta_plus):
-    number_obs = len(df)
-
-    alpha_plus = np.zeros(number_obs)
-    y_plus = np.zeros(number_obs)
-    alpha_plus[0] = df[0]
-
-    for i in range(number_obs):
-        y_plus[i] = alpha_plus[i] + epsilon_plus[i]
-        if(i != number_obs-1):
-            alpha_plus[i+1] = alpha_plus[i] + eta_plus[i]
-      
-    a_hat,v_hat,F_hat,K_hat,P_hat  = kalman_filter(y_plus,sigma_sq_eta,sigma_sq_eps)
-    alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(y_plus,a_hat,v_hat,F_hat,K_hat,P_hat)
-    #epsilon_plus_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D =  kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F_hat,v_hat,K_hat,r_hat,N_hat)
-    
-    #a_hat,v_hat,F_hat,K_hat,P_hat  = kalman_filter(df,sigma_sq_eta,sigma_sq_eps)
-    #alpha_hat,V_hat,r_hat,N_hat =   kalman_smoother(df,a_hat,v_hat,F_hat,K_hat,P_hat)
-    #epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D =  kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F,v,K,r,N)
-
     u_hat = (F_hat)**(-1) * v_hat - K_hat*r_hat
     epsilon_hat_plus = sigma_sq_eps*u_hat
     
@@ -216,45 +187,26 @@ def standardised_errors(df,v,F):
 def stand_smoothed_res(u,D,r,N):
     u_star = D**(-0.5)*u
     r_star = N**(-0.5)*r
-    
     return u_star, r_star
 
 #####################################
 #Parameter estimation
 def loglikilihood(parameters,y):
     sigma_sq_eps,sigma_sq_eta = parameters
-    number_obs = len(y)
+    n = len(y)
     
-    a = np.zeros(number_obs)
-    v = np.zeros(number_obs)
-    K = np.zeros(number_obs)
-    P_star = np.zeros(number_obs)
-    F_star = np.zeros(number_obs)
-    
-    a[0] = 0
-    P_star[0] = 10**7/sigma_sq_eps
-    q = sigma_sq_eta/sigma_sq_eps
-
-    L = 0
-    for i in range(number_obs):
-        v[i] = y[i] - a[i]
-        F_star[i] = P_star[i] + 1
-        K[i] = P_star[i]/F_star[i]
-    
-        if(i != number_obs - 1):
-            a[i + 1] = a[i] + K[i]*v[i]
-            P_star[i + 1] = P_star[i]*(1 - K[i]) + q
+    a,v,F_star,K,P = kalman_filter(y,sigma_sq_eta,sigma_sq_eps)
    
     sigma_sq_eps_hat = 0
     sum_F_star = 0
-    for i in range(1,number_obs):
-        sigma_sq_eps_hat += v[i]**2/F_star[i]
-        sum_F_star += F_star[i]
-    sigma_sq_eps_hat = sigma_sq_eps_hat/(number_obs-1)
+    for i in range(1,n):
+        sigma_sq_eps_hat += ((v[i]**2)/F_star[i])
+        sum_F_star += np.log(F_star[i])
+    sigma_sq_eps_hat = sigma_sq_eps_hat/(n-1)
     
-    log_L = -(number_obs/2) * np.log(2 * math.pi) - (number_obs - 1)/2 - (number_obs - 1)/2 * np.log(sigma_sq_eps_hat) - 0.5*sum_F_star
+    log_L = -(n/2) * np.log(2 * math.pi) - (n - 1)/2 - (n - 1)/2 * np.log(sigma_sq_eps_hat) - 0.5*sum_F_star
 
-    return -L
+    return -log_L
 
 def est_params(y,sigma_sq_eps,sigma_sq_eta):
     #initial_values = [sigma_sq_eps,sigma_sq_eta]
@@ -275,8 +227,8 @@ def main():
     
     #epsilon_plus = sigma_sq_eps**(0.5) * np.random.normal(0, 1, number_obs)
     #eta_plus = sigma_sq_eta**(0.5) * np.random.normal(0, 1, number_obs)
-    epsilon_plus =   np.random.normal(0, sigma_sq_eps, number_obs)
-    eta_plus = np.random.normal(0, sigma_sq_eta, number_obs)
+    epsilon_plus =   np.random.normal(0, sigma_sq_eps**(0.5), number_obs)
+    eta_plus = np.random.normal(0, sigma_sq_eta**(0.5), number_obs)
     
     break_begin1 = df_nile.loc[df_nile['Year']==1891].index[0]
     break_end1 = df_nile.loc[df_nile['Year']==1911].index[0]
@@ -297,10 +249,8 @@ def main():
     
     #figure 4
     alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde = simulation(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta_plus)
-    plots.plot_simulation(df_nile,alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
-    alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde = simulation2(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta_plus)
-    plots.plot_simulation(df_nile,alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
-    
+    #plots.plot_simulation(df_nile,alpha,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
+
     #figure 5
     broken_nile,new_a,new_P,new_alpha,new_V = kalman_weight(df_nile,sigma_sq_eta,sigma_sq_eps,break_begin1,break_end1,break_begin2,break_end2)
     #plots.plot_kalman_weights(df_nile,broken_nile,new_a,new_P,new_alpha,new_V,break_begin1,break_end1,break_begin2,break_end2)

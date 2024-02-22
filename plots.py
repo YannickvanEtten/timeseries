@@ -82,15 +82,15 @@ def plot_kalman_obs_dist(df,epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_e
 
     plt.show()
 
-def plot_simulation(df,alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde):
+def plot_simulation(df,alpha,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde):
     number_obs = len(df)
     fig, axs = plt.subplots(2, 2, figsize=(10, 8), tight_layout=True)
   
-    axs[0, 0].plot(df['Year'], alpha_hat, color='black')
+    axs[0, 0].plot(df['Year'], alpha, color='black')
     axs[0, 0].plot(df['Year'],alpha_plus, 'bo', markersize=2)
     axs[0, 0].set_title('alpha hat and alpha plus')
 
-    axs[0, 1].plot(df['Year'], alpha_hat, color='black')
+    axs[0, 1].plot(df['Year'], alpha, color='black')
     axs[0, 1].plot(df['Year'],alpha_tilde, 'bo', markersize=2)
     axs[0, 1].set_title('alpha hat and alpha tilde')
 
