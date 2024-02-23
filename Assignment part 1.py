@@ -226,35 +226,35 @@ def main():
     
     #figure 1
     a,v,F,K,P = kalman_filter(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps)
-    #plots.plot_kalman_filter(df_nile,a,v,F,K,P)
+    plots.plot_kalman_filter(df_nile,a,v,F,K,P)
     
     #figure 2
     alpha,V,r,N  = kalman_smoother(df_nile,a,v,F,K,P)
-    #plots.plot_kalman_smoother(df_nile,alpha,V,r,N)
+    plots.plot_kalman_smoother(df_nile,alpha,V,r,N)
     
     #figure 3
     epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D = kalman_obs_disturb(df_nile,sigma_sq_eta,sigma_sq_eps,F,v,K,r,N)
-    #plots.plot_kalman_obs_dist(df_nile,epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta)
+    plots.plot_kalman_obs_dist(df_nile,epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta)
     
     #figure 4
     alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde = simulation(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat,epsilon_plus,eta_plus)
-    #plots.plot_simulation(df_nile,alpha,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
+    plots.plot_simulation(df_nile,alpha,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
 
     #figure 5
     broken_nile,new_a,new_P,new_alpha,new_V = kalman_weight(df_nile,sigma_sq_eta,sigma_sq_eps,break_begin1,break_end1,break_begin2,break_end2)
-    #plots.plot_kalman_weights(df_nile,broken_nile,new_a,new_P,new_alpha,new_V,break_begin1,break_end1,break_begin2,break_end2)
+    plots.plot_kalman_weights(df_nile,broken_nile,new_a,new_P,new_alpha,new_V,break_begin1,break_end1,break_begin2,break_end2)
 
     #figure 6
     forecasting_time,a_forecast,P_forecast,F_forecast,lower_bound,upper_bound = forecasting(df_nile,a,P,F,K,sigma_sq_eps,sigma_sq_eta)
-    #plots.plot_forecasting(df_nile,forecasting_time,a_forecast,P_forecast,F_forecast,lower_bound,upper_bound)
+    plots.plot_forecasting(df_nile,forecasting_time,a_forecast,P_forecast,F_forecast,lower_bound,upper_bound)
     
     #figure 7
     e = standardised_errors(df_nile,v,F)
-    #plots.plot_standardised_errors(df_nile,e)
+    plots.plot_standardised_errors(df_nile,e)
     
     #figure 8
     u_star, r_star = stand_smoothed_res(u,D,r,N)
-    #plots.plot_stand_smoothed_res(df_nile,u_star,r_star)
+    plots.plot_stand_smoothed_res(df_nile,u_star,r_star)
     
     res = est_params(df_nile['Nile'])
     print(res)
