@@ -191,20 +191,16 @@ def stand_smoothed_res(u,D,r,N):
 
 #####################################
 #Parameter estimation
+
 def loglikilihood(parameters,y):
     sigma_sq_eps,sigma_sq_eta = parameters
     number_obs = len(y)
     a,v,F_star,K,P_star = kalman_filter(y,sigma_sq_eta,sigma_sq_eps)
 
-    sigma_sq_eps_hat = 0
-    sum_F_star = 0
+    log_L = - (number_obs - 1)/2 * np.log(2*np.pi)
     for i in range(1,number_obs):
-        sigma_sq_eps_hat += v[i]**2/F_star[i]
-        sum_F_star += np.log(F_star[i])
-    sigma_sq_eps_hat = sigma_sq_eps_hat/(number_obs-1)
+        log_L += -0.5*(np.log(F_star[i])+(v[i]**2/F_star[i]))
     
-    log_L = - (number_obs - 1)/2 * np.log(sigma_sq_eps_hat) - 0.5*sum_F_star
-
     return -log_L
 
 def est_params(y):
@@ -212,17 +208,14 @@ def est_params(y):
     result = minimize(loglikilihood, initial_values, args=(y,), method='L-BFGS-B')
     return result
 
-
 def main():
     df_nile = pd.read_excel("Data/Nile.xlsx")
     df_nile.rename(columns={'Unnamed: 0': 'Year'}, inplace=True)
     number_obs = len(df_nile)
 
-    sigma_sq_eta = 1469.1
     sigma_sq_eps = 15099
+    sigma_sq_eta = 1469.1
     
-    #epsilon_plus = sigma_sq_eps**(0.5) * np.random.normal(0, 1, number_obs)
-    #eta_plus = sigma_sq_eta**(0.5) * np.random.normal(0, 1, number_obs)
     epsilon_plus =   np.random.normal(0, sigma_sq_eps**(0.5), number_obs)
     eta_plus = np.random.normal(0, sigma_sq_eta**(0.5), number_obs)
     
@@ -265,6 +258,7 @@ def main():
     
     res = est_params(df_nile['Nile'])
     print(res)
+    print(res.x[0],res.x[1])
 ###########################################################
 ### call main
 if __name__ == "__main__":
