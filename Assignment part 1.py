@@ -193,26 +193,22 @@ def stand_smoothed_res(u,D,r,N):
 #Parameter estimation
 def loglikilihood(parameters,y):
     sigma_sq_eps,sigma_sq_eta = parameters
-    n = len(y)
-    
-    a,v,F_star,K,P = kalman_filter(y,sigma_sq_eta,sigma_sq_eps)
-   
+    number_obs = len(y)
+    a,v,F_star,K,P_star = kalman_filter(y,sigma_sq_eta,sigma_sq_eps)
+
     sigma_sq_eps_hat = 0
     sum_F_star = 0
-    for i in range(1,n):
-        sigma_sq_eps_hat += ((v[i]**2)/F_star[i])
+    for i in range(1,number_obs):
+        sigma_sq_eps_hat += v[i]**2/F_star[i]
         sum_F_star += np.log(F_star[i])
-    sigma_sq_eps_hat = sigma_sq_eps_hat/(n-1)
+    sigma_sq_eps_hat = sigma_sq_eps_hat/(number_obs-1)
     
-    log_L = -(n/2) * np.log(2 * math.pi) - (n - 1)/2 - (n - 1)/2 * np.log(sigma_sq_eps_hat) - 0.5*sum_F_star
+    log_L = - (number_obs - 1)/2 * np.log(sigma_sq_eps_hat) - 0.5*sum_F_star
 
     return -log_L
 
-def est_params(y,sigma_sq_eps,sigma_sq_eta):
-    #initial_values = [sigma_sq_eps,sigma_sq_eta]
-    q = sigma_sq_eta/sigma_sq_eps
-    initial_values = [1000,1000]
-
+def est_params(y):
+    initial_values = [16000,1000]
     result = minimize(loglikilihood, initial_values, args=(y,), method='L-BFGS-B')
     return result
 
@@ -267,8 +263,8 @@ def main():
     u_star, r_star = stand_smoothed_res(u,D,r,N)
     #plots.plot_stand_smoothed_res(df_nile,u_star,r_star)
     
-    res = est_params(df_nile['Nile'],sigma_sq_eps,sigma_sq_eta)
-    #print(res)
+    res = est_params(df_nile['Nile'])
+    print(res)
 ###########################################################
 ### call main
 if __name__ == "__main__":
