@@ -10,7 +10,7 @@ def plot_kalman_filter(df,a,v,F,K,P):
     a_lower = a - z_95 * np.sqrt(P)
     a_upper = a + z_95 * np.sqrt(P)
     
-    axs[0, 0].plot(df['Year'][1:],df['Nile'][1:], 'bo', markersize=2, label = 'Nile')
+    axs[0, 0].plot(df['Year'],df['Nile'], 'bo', markersize=2, label = 'Nile')
     axs[0, 0].plot(df['Year'][1:], a[1:],color='black')
     axs[0, 0].plot(df['Year'][1:], a_lower[1:],color='green')
     axs[0, 0].plot(df['Year'][1:], a_upper[1:],color='green')

@@ -14,7 +14,7 @@ import plots
 np.random.seed(200) #23
 #####################################
 #Figure 2.1
-def kalman_filter(df,sigma_sq_eta,sigma_sq_eps,forecast):
+def kalman_filter(df,Z,H,T,R,Q,forecast):
     # important to note the at+1 and Pt+1 are also calculated, since in a plot of smoothed necessary
     number_obs = len(df)
     df = np.array(df)
@@ -26,15 +26,16 @@ def kalman_filter(df,sigma_sq_eta,sigma_sq_eps,forecast):
     a[0] = 0
     P[0] = 10**7
     for i in range(number_obs):
-        v[i] = df[i] - a[i]
-        F[i] = P[i] + sigma_sq_eps
-        K[i] = P[i]/F[i]
+        v[i] = df[i] - Z * a[i]
+        F[i] = Z * P[i] * Z + H
+        K[i] = T*P[i]*Z/F[i]
         if(math.isnan(df[i])):
-            a[i + 1] = a[i] 
-            P[i + 1] = P[i] + sigma_sq_eta
+            a[i + 1] = T*a[i] 
+            P[i + 1] = P[i] + Q
         else:
-            a[i + 1] = a[i] + K[i]*v[i]
-            P[i + 1] = K[i]*sigma_sq_eps + sigma_sq_eta
+            a[i + 1] = T*a[i] + K[i]*v[i]
+            #P[i + 1] = K[i]*H + Q
+            P[i + 1] = T* P[i] *T + R*Q*R - K[i] * F[i] * K[i]
     if forecast == True:
         return a,v,F,K,P
     else:
@@ -83,13 +84,13 @@ def kalman_obs_disturb(df,sigma_sq_eta,sigma_sq_eps,F,v,K,r,N):
 #####################################
 #figure 2.4
 
-def create_simulation(df,sigma_sq_eps,sigma_sq_eta):
+def create_simulation(df,H,Q):
     number_obs = len(df)
     alpha_plus = np.zeros(number_obs)
     y_plus = np.zeros(number_obs)
     alpha_plus[0] = df[0]
-    epsilon_plus =   np.random.normal(0, sigma_sq_eps**(0.5), number_obs)
-    eta_plus = np.random.normal(0, sigma_sq_eta**(0.5), number_obs)
+    epsilon_plus =   np.random.normal(0, H**(0.5), number_obs)
+    eta_plus = np.random.normal(0, Q**(0.5), number_obs)
 
     for i in range(number_obs):
         y_plus[i] = alpha_plus[i] + epsilon_plus[i]
@@ -97,13 +98,13 @@ def create_simulation(df,sigma_sq_eps,sigma_sq_eta):
             alpha_plus[i+1] = alpha_plus[i] + eta_plus[i]
     return y_plus, alpha_plus, epsilon_plus 
 
-def simulation(df,sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat):
-    y_plus, alpha_plus, epsilon_plus = create_simulation(df,sigma_sq_eps,sigma_sq_eta)
-    a_hat_plus,v_hat_plus,F_hat_plus,K_hat_plus,P_hat_plus  = kalman_filter(y_plus,sigma_sq_eta,sigma_sq_eps,False)
+def simulation(df,Z,T,R,H,Q,epsilon_hat):
+    y_plus, alpha_plus, epsilon_plus = create_simulation(df,H,Q)
+    a_hat_plus,v_hat_plus,F_hat_plus,K_hat_plus,P_hat_plus  = kalman_filter(y_plus,Z,H,T,R,Q,False)
     alpha_hat_plus,V_hat_plus,r_hat_plus,N_hat_plus =   kalman_smoother(y_plus,a_hat_plus,v_hat_plus,F_hat_plus,K_hat_plus,P_hat_plus)
     
     u_hat_plus = (F_hat_plus)**(-1) * v_hat_plus - K_hat_plus*r_hat_plus
-    epsilon_hat_plus = sigma_sq_eps*u_hat_plus
+    epsilon_hat_plus = H*u_hat_plus
     
     epsilon_tilde = epsilon_plus - epsilon_hat_plus + epsilon_hat
     
@@ -112,8 +113,8 @@ def simulation(df,sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat):
     return(alpha_plus,alpha_tilde,epsilon_tilde,eta_tilde)
 #####################################
 #figure 2.5
-def kalman_weight(df_nile_broken,sigma_sq_eta,sigma_sq_eps):
-    new_a,new_v,new_F,new_K,new_P = kalman_filter(df_nile_broken,sigma_sq_eta,sigma_sq_eps,True)
+def kalman_weight(df_nile_broken,Z,T,R,H,Q):
+    new_a,new_v,new_F,new_K,new_P = kalman_filter(df_nile_broken,Z,H,T,R,Q,True)
     new_alpha,new_V,new_r,new_N  = kalman_smoother(df_nile_broken,new_a,new_v,new_F,new_K,new_P)
     return new_a,new_P,new_alpha,new_V
 #####################################
@@ -151,10 +152,12 @@ def stand_smoothed_res(u,D,r,N):
 #Parameter estimation
 
 def loglikilihood(parameters,y):
-    sigma_sq_eps,sigma_sq_eta = parameters
+    H,Q = parameters
     number_obs = len(y)
-    a,v,F_star,K,P_star = kalman_filter(y,sigma_sq_eta,sigma_sq_eps,False)
-
+    Z = 1
+    T = 1
+    R = 1
+    a,v,F_star,K,P_star = kalman_filter(y,Z,H,T,R,Q,False)
     log_L = - (number_obs - 1)/2 * np.log(2*np.pi)
     for i in range(1,number_obs):
         log_L += -0.5*(np.log(F_star[i])+(v[i]**2/F_star[i]))
@@ -183,10 +186,15 @@ def main():
     broken_nile = df_nile['Nile'].copy()
     broken_nile[break_begin1:break_end1] = np.nan    
     broken_nile[break_begin2:break_end2] = np.nan
+    Z = 1
+    T = 1
+    R = 1
+    H = sigma_sq_eps
+    Q = sigma_sq_eta
     
     #figure 1
-    a,v,F,K,P = kalman_filter(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps,False)
-    #plots.plot_kalman_filter(df_nile,a,v,F,K,P)
+    a,v,F,K,P = kalman_filter(df_nile['Nile'],Z,H,T,R,Q,False)
+    plots.plot_kalman_filter(df_nile,a,v,F,K,P)
     
     #figure 2
     alpha_hat,V,r,N  = kalman_smoother(df_nile['Nile'],a,v,F,K,P)
@@ -194,28 +202,28 @@ def main():
     
     #figure 3
     epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta,u,D = kalman_obs_disturb(df_nile,sigma_sq_eta,sigma_sq_eps,F,v,K,r,N)
-    #plots.plot_kalman_obs_dist(df_nile,epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta)
+    plots.plot_kalman_obs_dist(df_nile,epsilon_hat, smoothed_sd_eps, eta_hat, smoothed_sd_eta)
     
     #figure 4
-    alpha_plus,alpha_tilde,epsilon_tilde,eta_tilde = simulation(df_nile['Nile'],sigma_sq_eta,sigma_sq_eps,epsilon_hat,eta_hat)
-    #plots.plot_simulation(df_nile,alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
+    alpha_plus,alpha_tilde,epsilon_tilde,eta_tilde = simulation(df_nile['Nile'],Z,T,R,H,Q,epsilon_hat)
+    plots.plot_simulation(df_nile,alpha_hat,alpha_plus,alpha_tilde,epsilon_hat,epsilon_tilde,eta_hat,eta_tilde)
 
     #figure 5
-    new_a,new_P,new_alpha,new_V=kalman_weight(broken_nile,sigma_sq_eta,sigma_sq_eps)
-    #plots.plot_kalman_weights(df_nile,broken_nile,new_a[1:],new_P[1:],new_alpha,new_V,break_begin1,break_end1,break_begin2,break_end2)
+    new_a,new_P,new_alpha,new_V = kalman_weight(broken_nile,Z,T,R,H,Q)
+    plots.plot_kalman_weights(df_nile,broken_nile,new_a[1:],new_P[1:],new_alpha,new_V,break_begin1,break_end1,break_begin2,break_end2)
 
     #figure 6
     forecast_length = 30
     forecasting_time,a_forecast,P_forecast,F_forecast,lower_bound,upper_bound = forecasting(df_nile,a,P,F,K,sigma_sq_eps,sigma_sq_eta,forecast_length)
-    #plots.plot_forecasting(df_nile,forecasting_time,a_forecast,P_forecast,F_forecast,lower_bound,upper_bound)
+    plots.plot_forecasting(df_nile,forecasting_time,a_forecast,P_forecast,F_forecast,lower_bound,upper_bound)
     
     #figure 7
     e = standardised_errors(df_nile,v,F)
-    #plots.plot_standardised_errors(df_nile,e)
+    plots.plot_standardised_errors(df_nile,e)
     
     #figure 8
     u_star, r_star = stand_smoothed_res(u,D,r,N)
-    #plots.plot_stand_smoothed_res(df_nile,u_star,r_star)
+    plots.plot_stand_smoothed_res(df_nile,u_star,r_star)
     
     res = est_params(df_nile['Nile'])
     print(res)
