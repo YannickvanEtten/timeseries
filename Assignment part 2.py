@@ -91,18 +91,29 @@ def loglikilihood(parameters,y):
 def est_params(x):
     kappa = np.mean(x)
     phi = 0.9950 #estimate from DK book as intial value
-    sigma_sq_eta = (1-phi**2)*(np.var(x)-(np.pi**2/2))
+    sigma_sq_eta = (1-phi**2)*(np.var(x)-(np.pi**2)/2)
     initial_values = [kappa,phi,sigma_sq_eta]
-    print(initial_values)
-    bounds = [(None, None), (0, 1), (0, None)]
+    print('initial_values',initial_values)
+    bounds = [(None, None), (0.000000001, 0.999999999), (0.000000001, None)]
     result = minimize(loglikilihood, initial_values, args=(x,), method='L-BFGS-B', bounds=bounds)
     return result
     
+def calc_return(p):
+    return np.log(p[1:])-np.log(p[:-1])
+
+def est_beta(X_star,F,v):
+    part1 = 0
+    part2 = 0
+    for i in range(len(X_star)):
+        part1 += X_star[i] * (1/F[i]) * X_star[i]
+        part2 += X_star[i] * (1/F[i]) * v[i]
+    return (1/part1)*part2
+
 ########################################3
 
 def main():
     yt = pd.read_excel("Data/sv.xlsx")
-    RV = pd.read_csv("Data/realized_volatility.csv")
+    RV_data = pd.read_csv("Data/realized_volatility.csv")
     yt = np.array(yt['GBPUSD'])
     
     ####### a
@@ -135,7 +146,6 @@ def main():
     print('sigma_eta',np.sqrt(sigma_sq_eta))
 
     ####### d
-
     a,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(xt,a,v,F,K,P)
     plt.plot(a,label = 'filtered a', c='red')
@@ -149,9 +159,51 @@ def main():
     plt.show()
 
     ####### e
-    print(RV)
+    aex_data = RV_data[RV_data['Symbol']=='.AEX']
+    p_aex = np.array(aex_data['close_price'])
+    RV_aex = np.array(aex_data['rv5_ss'])
+    y_aex = calc_return(p_aex)
+    x_aex = transformation(p_aex/100)
 
+    plt.plot(y_aex/100)
+    plt.show()
+    
+    plt.plot(x_aex)
+    plt.show()
 
+    res = est_params(x_aex)
+    print(res)
+    kappa = res.x[0]
+    d = kappa
+    sigma = np.exp(kappa+1.27)
+    phi = res.x[1]
+    T = phi
+    sigma_sq_eta = res.x[2]
+    Q = sigma_sq_eta
+    print('kappa',kappa)
+    print('sigma',sigma)
+    print('phi',phi)
+    print('sigma_sq_eta',sigma_sq_eta)
+    print('sigma_eta',np.sqrt(sigma_sq_eta))
+
+    a,v,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
+    alpha,V,r,N = kalman_smoother(x_aex,a,v,F,K,P)
+    plt.plot(a,label = 'filtered a', c='red')
+    plt.plot(alpha,label = 'smoothed alpha', c='orange')
+    plt.scatter(np.arange(len(x_aex)),x_aex, s=10)
+    plt.legend()
+    plt.show()
+    plt.plot(a,label = 'filtered a')
+    plt.plot(alpha,label = 'smoothed alpha')
+    plt.legend()
+    plt.show()
+
+    new_data = np.log(RV_aex) + kappa
+    a,v,F,K,P = kalman_filter(new_data,d,Z,H,T,R,Q,False)
+    beta_hat = est_beta(new_data,F,v)
+    print(beta_hat)
+
+    ####### f
 
 
 ###########################################################
