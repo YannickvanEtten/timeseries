@@ -103,24 +103,54 @@ def est_params(x):
 def main():
     yt = pd.read_excel("Data/sv.xlsx")
     yt = np.array(yt['GBPUSD'])
-    xt = transformation(yt)
+    
+    ####### a
     plt.plot(yt/100)
     plt.show()
+    
+    ####### b
+    xt = transformation(yt)
     plt.plot(xt)
     plt.show()
 
+    ####### c
     Z = 1
     R = 1
     H = (np.pi**2)/2
-    #T = phi
-    #Q = sigma_sq_eta
 
     res = est_params(xt)
     print(res)
     kappa = res.x[0]
+    d = kappa
     sigma = np.exp(kappa+1.27)
-    print(res.x[0],res.x[1],res.x[2])
-    print(sigma)
+    phi = res.x[1]
+    T = phi
+    sigma_sq_eta = res.x[2]
+    Q = sigma_sq_eta
+    print('kappa',kappa)
+    print('sigma',sigma)
+    print('phi',phi)
+    print('sigma_sq_eta',sigma_sq_eta)
+    print('sigma_eta',np.sqrt(sigma_sq_eta))
+
+    ####### d
+
+    a,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
+    alpha,V,r,N = kalman_smoother(xt,a,v,F,K,P)
+    print(np.arange(len(xt)))
+    plt.plot(a,label = 'filtered a', c='red')
+    plt.plot(alpha,label = 'smoothed alpha', c='orange')
+    plt.scatter(np.arange(len(xt)),xt, s=10)
+    plt.legend()
+    plt.show()
+    plt.plot(a,label = 'filtered a')
+    plt.plot(alpha,label = 'smoothed alpha')
+    plt.legend()
+    plt.show()
+
+    ####### e
+
+
 
 
 ###########################################################
