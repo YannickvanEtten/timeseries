@@ -78,7 +78,6 @@ def transformation(log_ret):
 
 def loglikilihood(parameters,y):
     kappa,T,Q = parameters
-    print(kappa,T,Q)
     number_obs = len(y)
     Z = 1
     R = 1
@@ -94,6 +93,7 @@ def est_params(x):
     phi = 0.9950 #estimate from DK book as intial value
     sigma_sq_eta = (1-phi**2)*(np.var(x)-(np.pi**2/2))
     initial_values = [kappa,phi,sigma_sq_eta]
+    print(initial_values)
     bounds = [(None, None), (0, 1), (0, None)]
     result = minimize(loglikilihood, initial_values, args=(x,), method='L-BFGS-B', bounds=bounds)
     return result
@@ -106,7 +106,7 @@ def main():
     xt = transformation(yt)
     plt.plot(yt/100)
     plt.show()
-    plt.plot(xt/100)
+    plt.plot(xt)
     plt.show()
 
     Z = 1
@@ -117,7 +117,10 @@ def main():
 
     res = est_params(xt)
     print(res)
-    print(res.x[0],res.x[1])
+    kappa = res.x[0]
+    sigma = np.exp(kappa+1.27)
+    print(res.x[0],res.x[1],res.x[2])
+    print(sigma)
 
 
 ###########################################################
