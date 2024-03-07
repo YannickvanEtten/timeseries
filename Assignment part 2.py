@@ -102,6 +102,7 @@ def est_params(x):
 
 def main():
     yt = pd.read_excel("Data/sv.xlsx")
+    RV = pd.read_csv("Data/realized_volatility.csv")
     yt = np.array(yt['GBPUSD'])
     
     ####### a
@@ -137,7 +138,6 @@ def main():
 
     a,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(xt,a,v,F,K,P)
-    print(np.arange(len(xt)))
     plt.plot(a,label = 'filtered a', c='red')
     plt.plot(alpha,label = 'smoothed alpha', c='orange')
     plt.scatter(np.arange(len(xt)),xt, s=10)
@@ -149,6 +149,7 @@ def main():
     plt.show()
 
     ####### e
+    print(RV)
 
 
 
