@@ -218,3 +218,46 @@ def plot_stand_smoothed_res(df,u_star,r_star):
         ax.tick_params(axis='both', which='major', labelsize=12)
 
     plt.show()
+
+def plot_return(yt,name):
+    plt.figure(figsize=(10, 6))
+    plt.plot(yt)
+    plt.title('Daily Log Returns of %s'%name)
+    plt.xlabel('Time')
+    plt.ylabel('Returns')
+    plt.show()
+
+def plot_trans_return(xt,name):
+    plt.figure(figsize=(10, 6))
+    plt.plot(xt)
+    plt.title('Transformed Daily Log Returns of %s'%name)
+    plt.xlabel('Time')
+    plt.ylabel('Returns')
+    plt.show()
+
+def hist_ret(yt,name):
+    plt.figure(figsize=(10, 6))
+    plt.hist(yt, bins=30, edgecolor='black', alpha=0.7)
+    plt.title('Histogram of Daily Log Returns of %s'%name)
+    plt.xlabel('Returns')
+    plt.ylabel('Frequency')
+    plt.show()
+
+def plot_KFS_data(a,alpha,xt):
+    plt.plot(a,label = 'filtered a', c='red')
+    plt.plot(alpha,label = 'smoothed alpha', c='orange')
+    plt.scatter(np.arange(len(xt)),xt, s=10)
+    plt.legend()
+    plt.title('Filtered a and smoothed alpha along with transformed data')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
+def plot_KFS(a,alpha):
+    plt.plot(a,label = 'filtered a')
+    plt.plot(alpha,label = 'smoothed alpha')
+    plt.legend()
+    plt.title('Filtered a and smoothed estimates of alpha')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()

@@ -112,21 +112,14 @@ def est_beta(X_star,F,v):
 ########################################3
 
 def main():
-    yt = pd.read_excel('/Users/martijnjansen/Desktop/sv.xlsx')
-    RV_data = pd.read_csv('/Users/martijnjansen/Desktop/realized_volatility.csv')
+    #yt = pd.read_excel('/Users/martijnjansen/Desktop/sv.xlsx')
+    #RV_data = pd.read_csv('/Users/martijnjansen/Desktop/realized_volatility.csv')
+    yt = pd.read_excel('Data/sv.xlsx')
+    RV_data = pd.read_csv('Data/realized_volatility.csv')
     yt = np.array(yt['GBPUSD'])
     
     ####### a
-    plt.plot(yt/100)
-    plt.show()
-    
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(yt/100)
-    plt.title('Daily Log Returns of GBPUSD')
-    plt.xlabel('Time')
-    plt.ylabel('Returns')
-    plt.show()
+    #plots.plot_return(yt/100,"GBPUSD")
     
     #sample moments
     mean_return = np.mean(yt/100)
@@ -139,25 +132,14 @@ def main():
     print(f"Skewness: {skewness_return:.4f}")
     print(f"Kurtosis: {kurtosis_return:.4f}")
     
-    #histogram of returns
-    plt.figure(figsize=(10, 6))
-    plt.hist(yt/100, bins=30, edgecolor='black', alpha=0.7)
-    plt.title('Histogram of Daily Log Returns')
-    plt.xlabel('Returns')
-    plt.ylabel('Frequency')
-    plt.show()
+    #plots.hist_ret(yt/100,"GBPUSD")
    
     ####### b
     xt = transformation(yt)
     print("Transformed Daily Log Returns (xt):")
     print(xt)
     
-    plt.figure(figsize=(10, 6))
-    plt.plot(xt)
-    plt.title('Transformed Daily Log Returns of GBPUSD')
-    plt.xlabel('Time')
-    plt.ylabel('Returns')
-    plt.show()
+    #plots.plot_trans_return(xt,"GBPUSD")
 
     ####### c
     Z = 1
@@ -182,34 +164,17 @@ def main():
     ####### d
     a,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(xt,a,v,F,K,P)
-    plt.plot(a,label = 'filtered a', c='red')
-    plt.plot(alpha,label = 'smoothed alpha', c='orange')
-    plt.scatter(np.arange(len(xt)),xt, s=10)
-    plt.legend()
-    plt.title('Filtered a and smoothed alpha along with transformed data')
-    plt.xlabel('Time')
-    plt.ylabel('Values')
-    plt.show()
-    plt.plot(a,label = 'filtered a')
-    plt.plot(alpha,label = 'smoothed alpha')
-    plt.legend()
-    plt.title('Filtered a and smoothed estimates of alpha')
-    plt.xlabel('Time')
-    plt.ylabel('Values')
-    plt.show()
+    #plots.plot_KFS_data(a,alpha,xt)
+    #plots.plot_KFS(a,alpha)
 
     ####### e
     aex_data = RV_data[RV_data['Symbol']=='.AEX']
-    p_aex = np.array(aex_data['close_price'])
     RV_aex = np.array(aex_data['rv5_ss'])
-    y_aex = calc_return(p_aex)
-    x_aex = transformation(p_aex/100)
+    y_aex = np.array(aex_data['open_to_close'])
+    x_aex = transformation(y_aex*100)
 
-    plt.plot(y_aex/100)
-    plt.show()
-    
-    plt.plot(x_aex)
-    plt.show()
+    plots.plot_return(y_aex,"AEX")
+    plots.plot_trans_return(x_aex,"AEX")
 
     res = est_params(x_aex)
     print(res)
@@ -228,19 +193,13 @@ def main():
 
     a,v,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(x_aex,a,v,F,K,P)
-    plt.plot(a,label = 'filtered a', c='red')
-    plt.plot(alpha,label = 'smoothed alpha', c='orange')
-    plt.scatter(np.arange(len(x_aex)),x_aex, s=10)
-    plt.legend()
-    plt.show()
-    plt.plot(a,label = 'filtered a')
-    plt.plot(alpha,label = 'smoothed alpha')
-    plt.legend()
-    plt.show()
+    plots.plot_KFS_data(a,alpha,x_aex)
+    plots.plot_KFS(a,alpha)
 
     new_data = np.log(RV_aex) + kappa
     a,v,F,K,P = kalman_filter(new_data,d,Z,H,T,R,Q,False)
     beta_hat = est_beta(new_data,F,v)
+
     print(beta_hat)
 
     ####### f
