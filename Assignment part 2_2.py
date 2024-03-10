@@ -173,8 +173,8 @@ def main():
     y_aex = np.array(aex_data['open_to_close'])
     x_aex = transformation(y_aex*100)
 
-    plots.plot_return(y_aex,"AEX")
-    plots.plot_trans_return(x_aex,"AEX")
+    #plots.plot_return(y_aex,"AEX")
+    #plots.plot_trans_return(x_aex,"AEX")
 
     res = est_params(x_aex)
     print(res)
@@ -186,21 +186,26 @@ def main():
     sigma_sq_eta = res.x[2]
     Q = sigma_sq_eta
     print('kappa',kappa)
-    print('sigma',sigma)
+    print('sigma_sq',sigma)
     print('phi',phi)
     print('sigma_sq_eta',sigma_sq_eta)
     print('sigma_eta',np.sqrt(sigma_sq_eta))
 
-    a,v,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
-    alpha,V,r,N = kalman_smoother(x_aex,a,v,F,K,P)
+    a,v_star,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
+    alpha,V,r,N = kalman_smoother(x_aex,a,v_star,F,K,P)
     plots.plot_KFS_data(a,alpha,x_aex)
     plots.plot_KFS(a,alpha)
 
+    ## new part abput RV measure
     new_data = np.log(RV_aex) + kappa
-    a,v,F,K,P = kalman_filter(new_data,d,Z,H,T,R,Q,False)
-    beta_hat = est_beta(new_data,F,v)
-
+    a,x_star,F_temp,K,P = kalman_filter(new_data,d,Z,H,T,R,Q,False)
+    beta_hat = est_beta(x_star,F,v_star)
     print(beta_hat)
+    aex_adj = x_aex - beta_hat * np.log(RV_aex)
+    a,v,F,K,P = kalman_filter(aex_adj,d,Z,H,T,R,Q,False)
+    alpha,V,r,N = kalman_smoother(aex_adj,a,v,F,K,P)
+    plots.plot_KFS_data(a,alpha,x_aex)
+    plots.plot_KFS(a,alpha)
 
     ####### f
 
