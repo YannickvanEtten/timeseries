@@ -10,6 +10,7 @@ import math
 from scipy.optimize import minimize
 import scipy.stats as sp
 import plots
+import random
 
 np.random.seed(200) #23
 #####################################
@@ -137,7 +138,7 @@ def main():
     ####### b
     xt = transformation(yt)
     print("Transformed Daily Log Returns (xt):")
-    print(xt)
+    #print(xt)
     
     #plots.plot_trans_return(xt,"GBPUSD")
 
@@ -164,8 +165,57 @@ def main():
     ####### d
     a,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(xt,a,v,F,K,P)
-    #plots.plot_KFS_data(a,alpha,xt)
-    #plots.plot_KFS(a,alpha)
+    plots.plot_KFS_data(a,alpha,xt)
+    plots.plot_KFS(a,alpha)
+
+    ####### f
+    M = 100
+    T = len(xt)
+    x_hat = np.zeros(T)
+
+    alpha_tilde = sp.norm.rvs(0, np.sqrt(Q / (1 - phi**2)), size=M)
+
+    w = np.ones(M) / M
+    alpha_resample = np.random.choice(alpha_tilde, size=M, replace=True, p=w)
+
+    mu = np.mean(xt)
+
+    pdf_alpha = np.zeros(M)
+
+    log_w = np.log(w)  # Initialize log-weights
+
+    for t in range(T):
+        log_w_t = np.zeros(M)
+
+        for i in range(M):
+            alpha_tilde[i] = phi * alpha_resample[i] + sp.norm.rvs(0, np.sqrt(Q))
+
+            log_pdf_alpha = (
+                -0.5 * np.log(2 * np.pi * sigma**2 * np.exp(alpha_tilde[i]))
+                - (xt[t] - mu)**2 / (2 * sigma**2 * np.exp(alpha_tilde[i]))
+            )
+
+            log_w_t[i] = log_w[i] + log_pdf_alpha
+
+        log_w_t_normalized = log_w_t - np.max(log_w_t) 
+        log_w_t_normalized -= np.log(np.sum(np.exp(log_w_t_normalized)))
+
+        x_hat[t] = np.sum(np.exp(log_w_t_normalized) * alpha_tilde)
+
+        print(t)
+
+        # Resample
+        log_w_prob = log_w_t_normalized
+        alpha_resample = np.random.choice(alpha_tilde, size=M, replace=True, p=np.exp(log_w_prob))
+        log_w = log_w_t_normalized
+    
+    plt.plot(x_hat)
+
+
+    
+    Z = 1
+    R = 1
+    H = (np.pi**2)/2
 
     ####### e
     aex_data = RV_data[RV_data['Symbol']=='.AEX']
@@ -193,8 +243,8 @@ def main():
 
     a,v_star,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(x_aex,a,v_star,F,K,P)
-    plots.plot_KFS_data(a,alpha,x_aex)
-    plots.plot_KFS(a,alpha)
+    #plots.plot_KFS_data(a,alpha,x_aex)
+    #plots.plot_KFS(a,alpha)
 
     ## new part abput RV measure
     new_data = np.log(RV_aex) + kappa
@@ -204,10 +254,9 @@ def main():
     aex_adj = x_aex - beta_hat * np.log(RV_aex)
     a,v,F,K,P = kalman_filter(aex_adj,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(aex_adj,a,v,F,K,P)
-    plots.plot_KFS_data(a,alpha,x_aex)
-    plots.plot_KFS(a,alpha)
+    #plots.plot_KFS_data(a,alpha,x_aex)
+    #plots.plot_KFS(a,alpha)
 
-    ####### f
 
 ###########################################################
 ### call main
