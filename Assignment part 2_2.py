@@ -110,6 +110,27 @@ def est_beta(X_star,F,v):
         part2 += X_star[i] * (1/F[i]) * v[i]
     return (1/part1)*part2
 
+def bootstrap(yt,mu,phi,sigma_sq,Q,M):
+    n = len(yt)
+    va = np.zeros(n)
+    vP = np.zeros(n)
+
+    alpha_tilde = sp.norm.rvs(0, np.sqrt(Q / (1 - phi**2)), size=M)
+    w = np.exp(-0.5*np.log(2*np.pi*sigma_sq) - 0.5*alpha_tilde - (1/(2*sigma_sq))*np.exp(-1*alpha_tilde)*(yt[0]-mu)**2)
+    w_norm = w/sum(w) # to normalise weights
+    va[0] = sum(w_norm*alpha_tilde)  #MC step given M simulations
+    vP[0] = sum(w_norm*alpha_tilde**2) - va[0]**2  #MC step given M simulations
+    alpha_resample = np.random.choice(alpha_tilde, size=M, replace=True, p=w_norm)
+    
+    for i in range(1,n):
+        alpha_tilde = phi * alpha_resample + sp.norm.rvs(0, np.sqrt(Q), size = M)
+        w = np.exp(-0.5*np.log(2*np.pi*sigma_sq) - 0.5*alpha_tilde - (1/(2*sigma_sq))*np.exp(-1*alpha_tilde)*(yt[i]-mu)**2)
+        w_norm = w/sum(w) # to normalise weights
+        va[i] = sum(w_norm*alpha_tilde)  #MC step given M simulations
+        vP[i] = sum(w_norm*alpha_tilde**2) - va[i]**2  #MC step given M simulations
+        alpha_resample = np.random.choice(alpha_tilde, size=M, replace=True, p=w_norm)
+    return va, vP
+
 ########################################3
 
 def main():
@@ -151,77 +172,30 @@ def main():
     print(res)
     kappa = res.x[0]
     d = kappa
-    sigma = np.exp(kappa+1.27)
+    sigma_sq = np.exp(kappa+1.27)
     phi = res.x[1]
     T = phi
     sigma_sq_eta = res.x[2]
     Q = sigma_sq_eta
-    print('kappa',kappa)
-    print('sigma',sigma)
-    print('phi',phi)
-    print('sigma_sq_eta',sigma_sq_eta)
-    print('sigma_eta',np.sqrt(sigma_sq_eta))
+    param_exchange = [kappa,sigma_sq,phi,sigma_sq_eta]
+    print('kappa\t',kappa)
+    print('sigma_sq\t',sigma_sq)
+    print('phi\t\t',phi)
+    print('sigma_sq_eta\t',sigma_sq_eta)
+    print('sigma_eta\t',np.sqrt(sigma_sq_eta))
 
     ####### d
-    a,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
-    alpha,V,r,N = kalman_smoother(xt,a,v,F,K,P)
-    plots.plot_KFS_data(a,alpha,xt)
-    plots.plot_KFS(a,alpha)
-
-    ####### f
-    M = 100
-    T = len(xt)
-    x_hat = np.zeros(T)
-
-    alpha_tilde = sp.norm.rvs(0, np.sqrt(Q / (1 - phi**2)), size=M)
-
-    w = np.ones(M) / M
-    alpha_resample = np.random.choice(alpha_tilde, size=M, replace=True, p=w)
-
-    mu = np.mean(xt)
-
-    pdf_alpha = np.zeros(M)
-
-    log_w = np.log(w)  # Initialize log-weights
-
-    for t in range(T):
-        log_w_t = np.zeros(M)
-
-        for i in range(M):
-            alpha_tilde[i] = phi * alpha_resample[i] + sp.norm.rvs(0, np.sqrt(Q))
-
-            log_pdf_alpha = (
-                -0.5 * np.log(2 * np.pi * sigma**2 * np.exp(alpha_tilde[i]))
-                - (xt[t] - mu)**2 / (2 * sigma**2 * np.exp(alpha_tilde[i]))
-            )
-
-            log_w_t[i] = log_w[i] + log_pdf_alpha
-
-        log_w_t_normalized = log_w_t - np.max(log_w_t) 
-        log_w_t_normalized -= np.log(np.sum(np.exp(log_w_t_normalized)))
-
-        x_hat[t] = np.sum(np.exp(log_w_t_normalized) * alpha_tilde)
-
-        print(t)
-
-        # Resample
-        log_w_prob = log_w_t_normalized
-        alpha_resample = np.random.choice(alpha_tilde, size=M, replace=True, p=np.exp(log_w_prob))
-        log_w = log_w_t_normalized
-    
-    plt.plot(x_hat)
-
-
-    
-    Z = 1
-    R = 1
-    H = (np.pi**2)/2
+    a_gbpusd,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
+    alpha,V,r,N = kalman_smoother(xt,a_gbpusd,v,F,K,P)
+    plots.plot_KFS_data(a_gbpusd,alpha,xt)
+    plots.plot_KFS(a_gbpusd,alpha)
 
     ####### e
     aex_data = RV_data[RV_data['Symbol']=='.AEX']
     RV_aex = np.array(aex_data['rv5_ss'])
     y_aex = np.array(aex_data['open_to_close'])
-    x_aex = transformation(y_aex*100)
+    y_aex = y_aex*100
+    x_aex = transformation(y_aex)
 
     #plots.plot_return(y_aex,"AEX")
     #plots.plot_trans_return(x_aex,"AEX")
@@ -230,21 +204,22 @@ def main():
     print(res)
     kappa = res.x[0]
     d = kappa
-    sigma = np.exp(kappa+1.27)
+    sigma_sq = np.exp(kappa+1.27)
     phi = res.x[1]
     T = phi
     sigma_sq_eta = res.x[2]
     Q = sigma_sq_eta
-    print('kappa',kappa)
-    print('sigma_sq',sigma)
-    print('phi',phi)
-    print('sigma_sq_eta',sigma_sq_eta)
-    print('sigma_eta',np.sqrt(sigma_sq_eta))
+    param_aex = [kappa,sigma_sq,phi,sigma_sq_eta]
+    print('kappa\t',kappa)
+    print('sigma_sq\t',sigma_sq)
+    print('phi\t\t',phi)
+    print('sigma_sq_eta\t',sigma_sq_eta)
+    print('sigma_eta\t',np.sqrt(sigma_sq_eta))
 
-    a,v_star,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
-    alpha,V,r,N = kalman_smoother(x_aex,a,v_star,F,K,P)
-    #plots.plot_KFS_data(a,alpha,x_aex)
-    #plots.plot_KFS(a,alpha)
+    a_aex,v_star,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
+    alpha,V,r,N = kalman_smoother(x_aex,a_aex,v_star,F,K,P)
+    #plots.plot_KFS_data(a_aex,alpha,x_aex)
+    #plots.plot_KFS(a_aex,alpha)
 
     ## new part abput RV measure
     new_data = np.log(RV_aex) + kappa
@@ -257,6 +232,34 @@ def main():
     #plots.plot_KFS_data(a,alpha,x_aex)
     #plots.plot_KFS(a,alpha)
 
+    ####### f
+    # First part about gbpusd data
+    #yt = return data gbpusd
+    #use params from before
+    #param_exchange [kappa,sigma_sq,phi,sigma_sq_eta]
+    sigma_sq = param_exchange[1]
+    phi = param_exchange[2]
+    sigma_sq_eta = param_exchange[3]
+    mu = np.mean(yt)
+    M = 100
+    va_gbpusd, vP_gbpusd = bootstrap(yt,mu,phi,sigma_sq,sigma_sq_eta,M)
+
+    plt.plot(va_gbpusd)
+    plt.plot(a_gbpusd)
+    plt.show()
+
+    sigma_sq = param_aex[1]
+    sigma_sq = np.sqrt(sigma_sq)
+    phi = param_aex[2]
+    sigma_sq_eta = param_aex[3]
+    mu = np.mean(y_aex)
+    
+    M = 100
+    va_aex, vP_gbpusd = bootstrap(y_aex,mu,phi,sigma_sq,sigma_sq_eta,M)
+
+    plt.plot(va_aex)
+    plt.plot(a_aex)
+    plt.show()
 
 ###########################################################
 ### call main
