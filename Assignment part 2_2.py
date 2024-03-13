@@ -244,8 +244,9 @@ def main():
     M = 100
     va_gbpusd, vP_gbpusd = bootstrap(yt,mu,phi,sigma_sq,sigma_sq_eta,M)
 
-    plt.plot(va_gbpusd)
-    plt.plot(a_gbpusd)
+    plt.plot(va_gbpusd,label='Bootstrap filter')
+    plt.plot(a_gbpusd,label='QML filter')
+    plt.legend()
     plt.show()
 
     sigma_sq = param_aex[1]
@@ -257,8 +258,9 @@ def main():
     M = 100
     va_aex, vP_gbpusd = bootstrap(y_aex,mu,phi,sigma_sq,sigma_sq_eta,M)
 
-    plt.plot(va_aex)
-    plt.plot(a_aex)
+    plt.plot(va_aex,label='Bootstrap filter')
+    plt.plot(a_aex,label='QML filter')
+    plt.legend()
     plt.show()
 
 ###########################################################
