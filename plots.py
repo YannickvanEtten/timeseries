@@ -253,6 +253,16 @@ def plot_KFS_data(a,alpha,xt):
     plt.ylabel('Values')
     plt.show()
 
+def plot_KFS_data_rescaled(a,alpha,xt): 
+    plt.plot(a,label = 'rescaled filtered a', c='red')
+    plt.plot(alpha,label = 'rescaled smoothed alpha', c='orange')
+    plt.scatter(np.arange(len(xt)),xt, s=10)
+    plt.legend()
+    plt.title('Filtered a and smoothed alpha along with transformed data')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
 def plot_KFS(a,alpha):
     plt.plot(a,label = 'filtered a')
     plt.plot(alpha,label = 'smoothed alpha')
@@ -261,3 +271,22 @@ def plot_KFS(a,alpha):
     plt.xlabel('Time')
     plt.ylabel('Values')
     plt.show()
+
+def plot_KFS_rescaled(a,alpha):
+    plt.plot(a,label = 'rescaled filtered a')
+    plt.plot(alpha,label = 'rescaled smoothed alpha')
+    plt.legend()
+    plt.title('Filtered a and smoothed estimates of alpha')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
+def plot_KF_compar(a_out,a_with):
+    plt.plot(a_out,label = 'filtered a without RV')
+    plt.plot(a_with,label = 'filtered a with RV')
+    plt.legend()
+    plt.title('Filtered a estimates of alpha with and without RV')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+    

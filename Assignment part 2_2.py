@@ -89,6 +89,12 @@ def loglikilihood(parameters,y):
         log_L += -0.5*(np.log(F_star[i])+(v[i]**2/F_star[i]))
     return -log_L
 
+def calc_logL_para(number_obs,F_star,v):
+    log_L = - (number_obs - 1)/2 * np.log(2*np.pi)
+    for i in range(1,number_obs):
+        log_L += -0.5*(np.log(F_star[i])+(v[i]**2/F_star[i]))
+    return log_L
+
 def est_params(x):
     kappa = np.mean(x)
     phi = 0.9950 #estimate from DK book as intial value
@@ -130,6 +136,9 @@ def bootstrap(yt,mu,phi,sigma_sq,Q,M):
         vP[i] = sum(w_norm*alpha_tilde**2) - va[i]**2  #MC step given M simulations
         alpha_resample = np.random.choice(alpha_tilde, size=M, replace=True, p=w_norm)
     return va, vP
+
+def calc_aic(log_lik, n_par):
+    return -2 * log_lik + 2 * n_par
 
 ########################################3
 
@@ -187,8 +196,8 @@ def main():
     ####### d
     a_gbpusd,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(xt,a_gbpusd,v,F,K,P)
-    plots.plot_KFS_data(a_gbpusd,alpha,xt)
-    plots.plot_KFS(a_gbpusd,alpha)
+    #plots.plot_KFS_data(a_gbpusd,alpha,xt)
+    #plots.plot_KFS(a_gbpusd,alpha)
 
     ####### e
     aex_data = RV_data[RV_data['Symbol']=='.AEX']
@@ -218,6 +227,7 @@ def main():
 
     a_aex,v_star,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(x_aex,a_aex,v_star,F,K,P)
+    opt_logL_qml = calc_logL_para(len(x_aex),F,v_star)
     #plots.plot_KFS_data(a_aex,alpha,x_aex)
     #plots.plot_KFS(a_aex,alpha)
 
@@ -229,8 +239,18 @@ def main():
     aex_adj = x_aex - beta_hat * np.log(RV_aex)
     a,v,F,K,P = kalman_filter(aex_adj,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(aex_adj,a,v,F,K,P)
-    #plots.plot_KFS_data(a,alpha,x_aex)
-    #plots.plot_KFS(a,alpha)
+    a_adj = a + beta_hat * np.log(RV_aex)
+    alpha_adj = alpha + beta_hat * np.log(RV_aex)
+    plots.plot_KFS_data_rescaled(a_adj,alpha_adj,x_aex)
+    plots.plot_KFS_rescaled(a_adj,alpha_adj)
+    plots.plot_KF_compar(a_aex,a_adj)
+
+    opt_logL_alt = calc_logL_para(len(x_aex),F,v)
+    aic_qml = calc_aic(opt_logL_qml, 3)
+    aic_alt = calc_aic(opt_logL_alt, 3)
+    print('aic qml\t',aic_qml)
+    print('aic alt\t',aic_alt)
+    
 
     ####### f
     # First part about gbpusd data
@@ -244,10 +264,10 @@ def main():
     M = 100
     va_gbpusd, vP_gbpusd = bootstrap(yt,mu,phi,sigma_sq,sigma_sq_eta,M)
 
-    plt.plot(va_gbpusd,label='Bootstrap filter')
-    plt.plot(a_gbpusd,label='QML filter')
-    plt.legend()
-    plt.show()
+    #plt.plot(va_gbpusd,label='Bootstrap filter')
+    #plt.plot(a_gbpusd,label='QML filter')
+    #plt.legend()
+    #plt.show()
 
     sigma_sq = param_aex[1]
     sigma_sq = np.sqrt(sigma_sq)
@@ -258,10 +278,10 @@ def main():
     M = 100
     va_aex, vP_gbpusd = bootstrap(y_aex,mu,phi,sigma_sq,sigma_sq_eta,M)
 
-    plt.plot(va_aex,label='Bootstrap filter')
-    plt.plot(a_aex,label='QML filter')
-    plt.legend()
-    plt.show()
+    #plt.plot(va_aex,label='Bootstrap filter')
+    #plt.plot(a_aex,label='QML filter')
+    #plt.legend()
+    #plt.show()
 
 ###########################################################
 ### call main
