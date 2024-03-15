@@ -9,7 +9,6 @@ import statsmodels.api as sm
 import math
 from scipy.optimize import minimize
 import scipy.stats as sp
-import plots
 import random
 
 np.random.seed(200) #23
@@ -140,6 +139,77 @@ def bootstrap(yt,mu,phi,sigma_sq,Q,M):
 def calc_aic(log_lik, n_par):
     return -2 * log_lik + 2 * n_par
 
+def plot_return(yt,name):
+    plt.figure(figsize=(10, 6))
+    plt.plot(yt)
+    plt.title('Daily Log Returns of %s'%name)
+    plt.xlabel('Time')
+    plt.ylabel('Returns')
+    plt.show()
+
+def plot_trans_return(xt,name):
+    plt.figure(figsize=(10, 6))
+    plt.plot(xt)
+    plt.title('Transformed Daily Log Returns of %s'%name)
+    plt.xlabel('Time')
+    plt.ylabel('Returns')
+    plt.show()
+
+def hist_ret(yt,name):
+    plt.figure(figsize=(10, 6))
+    plt.hist(yt, bins=30, edgecolor='black', alpha=0.7)
+    plt.title('Histogram of Daily Log Returns of %s'%name)
+    plt.xlabel('Returns')
+    plt.ylabel('Frequency')
+    plt.show()
+
+def plot_KFS_data(a,alpha,xt):
+    plt.plot(a,label = 'filtered a', c='red')
+    plt.plot(alpha,label = 'smoothed alpha', c='orange')
+    plt.scatter(np.arange(len(xt)),xt, s=10)
+    plt.legend()
+    plt.title('Filtered a and smoothed alpha along with transformed data')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
+def plot_KFS_data_rescaled(a,alpha,xt): 
+    plt.plot(a,label = 'rescaled filtered a', c='red')
+    plt.plot(alpha,label = 'rescaled smoothed alpha', c='orange')
+    plt.scatter(np.arange(len(xt)),xt, s=10)
+    plt.legend()
+    plt.title('Filtered a and smoothed alpha along with transformed data')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
+def plot_KFS(a,alpha):
+    plt.plot(a,label = 'filtered a')
+    plt.plot(alpha,label = 'smoothed alpha')
+    plt.legend()
+    plt.title('Filtered a and smoothed estimates of alpha')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
+def plot_KFS_rescaled(a,alpha):
+    plt.plot(a,label = 'rescaled filtered a')
+    plt.plot(alpha,label = 'rescaled smoothed alpha')
+    plt.legend()
+    plt.title('Filtered a and smoothed estimates of alpha')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
+def plot_KF_compar(a_out,a_with):
+    plt.plot(a_out,label = 'filtered a without RV')
+    plt.plot(a_with,label = 'filtered a with RV')
+    plt.legend()
+    plt.title('Filtered a estimates of alpha with and without RV')
+    plt.xlabel('Time')
+    plt.ylabel('Values')
+    plt.show()
+
 ########################################3
 
 def main():
@@ -150,7 +220,7 @@ def main():
     yt = np.array(yt['GBPUSD'])
     
     ####### a
-    plots.plot_return(yt/100,"GBPUSD")
+    plot_return(yt/100,"GBPUSD")
     
     #sample moments
     mean_return = np.mean(yt/100)
@@ -163,14 +233,14 @@ def main():
     print(f"Skewness: {skewness_return:.4f}")
     print(f"Kurtosis: {kurtosis_return:.4f}")
     
-    plots.hist_ret(yt/100,"GBPUSD")
+    hist_ret(yt/100,"GBPUSD")
    
     ####### b
     xt = transformation(yt)
     print("Transformed Daily Log Returns (xt):")
     #print(xt)
     
-    plots.plot_trans_return(xt,"GBPUSD")
+    plot_trans_return(xt,"GBPUSD")
 
     ####### c
     Z = 1
@@ -196,8 +266,8 @@ def main():
     ####### d
     a_gbpusd,v,F,K,P = kalman_filter(xt,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(xt,a_gbpusd,v,F,K,P)
-    plots.plot_KFS_data(a_gbpusd,alpha,xt)
-    plots.plot_KFS(a_gbpusd,alpha)
+    plot_KFS_data(a_gbpusd,alpha,xt)
+    plot_KFS(a_gbpusd,alpha)
 
     ####### e
     aex_data = RV_data[RV_data['Symbol']=='.AEX']
@@ -206,9 +276,9 @@ def main():
     y_aex = y_aex*100
     x_aex = transformation(y_aex)
 
-    plots.plot_return(y_aex,"AEX")
-    plots.plot_trans_return(x_aex,"AEX")
-    plots.hist_ret(y_aex/100,"AEX")
+    plot_return(y_aex,"AEX")
+    plot_trans_return(x_aex,"AEX")
+    hist_ret(y_aex/100,"AEX")
 
     res = est_params(x_aex)
     print(res)
@@ -229,8 +299,8 @@ def main():
     a_aex,v_star,F,K,P = kalman_filter(x_aex,d,Z,H,T,R,Q,False)
     alpha,V,r,N = kalman_smoother(x_aex,a_aex,v_star,F,K,P)
     opt_logL_qml = calc_logL_para(len(x_aex),F,v_star)
-    plots.plot_KFS_data(a_aex,alpha,x_aex)
-    plots.plot_KFS(a_aex,alpha)
+    plot_KFS_data(a_aex,alpha,x_aex)
+    plot_KFS(a_aex,alpha)
 
     ## new part abput RV measure
     new_data = np.log(RV_aex) + kappa
@@ -242,9 +312,9 @@ def main():
     alpha,V,r,N = kalman_smoother(aex_adj,a,v,F,K,P)
     a_adj = a + beta_hat * np.log(RV_aex)
     alpha_adj = alpha + beta_hat * np.log(RV_aex)
-    plots.plot_KFS_data_rescaled(a_adj,alpha_adj,x_aex)
-    plots.plot_KFS_rescaled(a_adj,alpha_adj)
-    plots.plot_KF_compar(a_aex,a_adj)
+    plot_KFS_data_rescaled(a_adj,alpha_adj,x_aex)
+    plot_KFS_rescaled(a_adj,alpha_adj)
+    plot_KF_compar(a_aex,a_adj)
 
     opt_logL_alt = calc_logL_para(len(x_aex),F,v)
     aic_qml = calc_aic(opt_logL_qml, 3)
